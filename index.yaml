@@ -1,0 +1,27 @@
+apiVersion: v1
+entries:
+  neurobagel:
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2026-09-15T15:01:51.064018126Z"
+    description: Kubernetes-native Helm chart for deploying Neurobagel node and portal
+      profiles
+    digest: e976357bdcb75dfcdfda6b5b8c351637ed4dfe3b347df9071e6c33fee83b8a8a
+    home: https://github.com/neurobagel/recipes
+    keywords:
+    - neurobagel
+    - helm
+    - kubernetes
+    - graphdb
+    - federation
+    maintainers:
+    - name: neurobagel
+      url: https://github.com/neurobagel
+    name: neurobagel
+    sources:
+    - https://github.com/neurobagel/recipes
+    type: application
+    urls:
+    - https://github.com/neurotto/neurobagel-recipes/releases/download/neurobagel-0.1.0/neurobagel-0.1.0.tgz
+    version: 0.1.0
+generated: "2026-09-15T15:01:51.064026478Z"
