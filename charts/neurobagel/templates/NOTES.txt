@@ -1,0 +1,18 @@
+Neurobagel chart installed.
+
+Mode: {{ .Values.mode }}
+Profiles:
+  node: {{ .Values.profiles.node.enabled }}
+  portal: {{ .Values.profiles.portal.enabled }}
+
+Core service names:
+  api: {{ include "neurobagel.componentFullname" (list . "api") }}
+  graph: {{ include "neurobagel.componentFullname" (list . "graph") }}
+  federation: {{ include "neurobagel.componentFullname" (list . "federation") }}
+  query_federation: {{ include "neurobagel.componentFullname" (list . "query-federation") }}
+
+If running in-cluster smoke tests:
+  helm test {{ .Release.Name }} -n {{ .Release.Namespace }}
+
+If in dev mode, you can port-forward the API:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "neurobagel.componentFullname" (list . "api") }} 8000:8000

@@ -1,0 +1,78 @@
+{{- if and .Values.initData.enabled .Values.profiles.node.enabled .Values.api.enabled .Values.graph.enabled }}
+{{- if or (not .Values.initData.inputData.hostPath.enabled) (eq .Values.initData.inputData.hostPath.path "") }}
+{{- fail "initData requires initData.inputData.hostPath.enabled=true and a non-empty initData.inputData.hostPath.path" }}
+{{- end }}
+{{- $initDataSrcConfigMap := include "neurobagel.componentFullname" (list . "init-data-src") }}
+{{- if ne .Values.initData.source.overrideConfigMap "" }}
+{{- $initDataSrcConfigMap = .Values.initData.source.overrideConfigMap }}
+{{- end }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "neurobagel.componentFullname" (list . "init-data") }}
+  labels:
+    {{- include "neurobagel.componentLabels" (list . "init-data") | nindent 4 }}
+spec:
+  backoffLimit: {{ .Values.initData.backoffLimit }}
+  ttlSecondsAfterFinished: {{ .Values.initData.ttlSecondsAfterFinished }}
+  template:
+    metadata:
+      labels:
+        {{- include "neurobagel.componentSelectorLabels" (list . "init-data") | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: init-data
+          image: "{{ .Values.initData.image.repository }}:{{ .Values.initData.image.tag }}"
+          imagePullPolicy: {{ .Values.initData.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - -c
+            - {{ .Values.initData.command | quote }}
+          env:
+            - name: NB_CATALOG_MODE
+              value: {{ .Values.initData.env.NB_CATALOG_MODE | quote }}
+          volumeMounts:
+            - name: init-data-src
+              mountPath: /app
+              readOnly: true
+            - name: input-data
+              mountPath: /input_data
+              readOnly: true
+            - name: neurobagel-data
+              mountPath: /data
+      volumes:
+        - name: init-data-src
+          configMap:
+            name: {{ $initDataSrcConfigMap }}
+            items:
+              - key: init_data___init__.py
+                path: init_data/__init__.py
+              - key: init_data__process_jsonld.py
+                path: init_data/process_jsonld.py
+              - key: init_data__requirements.txt
+                path: init_data/requirements.txt
+              - key: init_data__utils___init__.py
+                path: init_data/utils/__init__.py
+              - key: init_data__utils__dataset_description_model.py
+                path: init_data/utils/dataset_description_model.py
+              - key: init_data__utils__dictionary_models.py
+                path: init_data/utils/dictionary_models.py
+              - key: init_data__utils__models.py
+                path: init_data/utils/models.py
+        - name: input-data
+          hostPath:
+            path: {{ .Values.initData.inputData.hostPath.path }}
+            type: {{ .Values.initData.inputData.hostPath.type }}
+        - name: neurobagel-data
+          {{- if eq .Values.storage.neurobagelData.type "pvc" }}
+          persistentVolumeClaim:
+            claimName: {{ include "neurobagel.componentFullname" (list . "data") }}
+          {{- else if eq .Values.storage.neurobagelData.type "hostPath" }}
+          hostPath:
+            path: {{ .Values.storage.neurobagelData.hostPath.path }}
+            type: {{ .Values.storage.neurobagelData.hostPath.type }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+{{- end }}

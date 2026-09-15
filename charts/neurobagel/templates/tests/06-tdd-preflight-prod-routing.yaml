@@ -1,0 +1,43 @@
+{{- if and .Values.tests.enabled (eq .Values.mode "prod") }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "neurobagel.componentFullname" (list . "tdd-preflight-prod-routing") }}
+  labels:
+    {{- include "neurobagel.componentLabels" (list . "tests") | nindent 4 }}
+    tests.neurobagel.io/category: tdd-preflight
+    tests.neurobagel.io/scenario: prod-routing
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-weight: "-15"
+    helm.sh/hook-delete-policy: {{ .Values.tests.hookDeletePolicy | quote }}
+spec:
+  serviceAccountName: {{ include "neurobagel.componentFullname" (list . "tests") }}
+  restartPolicy: Never
+  containers:
+    - name: kubectl
+      image: {{ .Values.tests.kubectlImage }}
+      command:
+        - /bin/sh
+        - -ec
+        - |
+          set -eu
+          {{- if .Values.routing.proxy.enabled }}
+          kubectl get deployment {{ include "neurobagel.componentFullname" (list . "nginx-proxy") }}
+          kubectl get pod -l app.kubernetes.io/component=nginx-proxy -o jsonpath='{.items[0].status.phase}' | grep -q '^Running$'
+          if [ "{{ .Values.routing.proxy.acme.enabled }}" = "true" ]; then
+            kubectl get deployment {{ include "neurobagel.componentFullname" (list . "acme-companion") }}
+            kubectl get pod -l app.kubernetes.io/component=acme-companion -o jsonpath='{.items[0].status.phase}' | grep -q '^Running$'
+          else
+            if kubectl get deployment {{ include "neurobagel.componentFullname" (list . "acme-companion") }} >/dev/null 2>&1; then
+              echo "acme-companion should not be deployed unless routing.proxy.acme.enabled=true"
+              exit 1
+            fi
+          fi
+          {{- else if .Values.routing.ingress.enabled }}
+          kubectl get ingress {{ include "neurobagel.fullname" . }}
+          kubectl get service {{ include "neurobagel.componentFullname" (list . "api") }}
+          kubectl get service {{ include "neurobagel.componentFullname" (list . "federation") }}
+          kubectl get service {{ include "neurobagel.componentFullname" (list . "query-federation") }}
+          {{- end }}
+{{- end }}

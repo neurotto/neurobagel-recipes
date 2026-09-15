@@ -1,0 +1,50 @@
+{{- if and .Values.tests.enabled .Values.profiles.node.enabled .Values.initData.enabled .Values.initData.inputData.hostPath.enabled (ne .Values.initData.inputData.hostPath.path "") }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "neurobagel.componentFullname" (list . "tdd-preflight-init-data") }}
+  labels:
+    {{- include "neurobagel.componentLabels" (list . "tests") | nindent 4 }}
+    tests.neurobagel.io/category: tdd-preflight
+    tests.neurobagel.io/scenario: node-init-data
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-weight: "-10"
+    helm.sh/hook-delete-policy: {{ .Values.tests.hookDeletePolicy | quote }}
+spec:
+  serviceAccountName: {{ include "neurobagel.componentFullname" (list . "tests") }}
+  restartPolicy: Never
+  containers:
+    - name: kubectl
+      image: {{ .Values.tests.kubectlImage }}
+      command:
+        - /bin/sh
+        - -ec
+        - |
+          set -eu
+          job_name="{{ include "neurobagel.componentFullname" (list . "init-data") }}"
+          if kubectl get job "$job_name" >/dev/null 2>&1; then
+            kubectl wait --for=condition=complete --timeout=180s "job/$job_name"
+            kubectl get job "$job_name" -o jsonpath='{.status.succeeded}' | grep -Eq '^[1-9][0-9]*$'
+            init_pod="$(kubectl get pod -l job-name="$job_name" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
+            if [ -n "$init_pod" ]; then
+              kubectl get pod "$init_pod" -o jsonpath='{.status.containerStatuses[0].state.terminated.exitCode}' | grep -q '^0$'
+            fi
+          else
+            echo "init-data job not found (likely TTL GC); verifying node components are present"
+            graph_pod=""
+            api_pod=""
+            for _ in $(seq 1 30); do
+              graph_pod="$(kubectl get pod -l app.kubernetes.io/component=graph -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
+              api_pod="$(kubectl get pod -l app.kubernetes.io/component=api -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
+              if [ -n "$graph_pod" ] && [ -n "$api_pod" ]; then
+                break
+              fi
+              sleep 2
+            done
+            [ -n "$graph_pod" ] && [ -n "$api_pod" ]
+          fi
+          if [ "{{ .Values.storage.neurobagelData.type }}" = "hostPath" ]; then
+            kubectl get pod -l app.kubernetes.io/component=graph -o jsonpath='{.items[0].spec.volumes[?(@.name=="neurobagel-data")].hostPath.path}' | grep -q .
+          fi
+{{- end }}

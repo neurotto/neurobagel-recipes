@@ -1,0 +1,89 @@
+{{- if and (eq .Values.mode "prod") .Values.routing.ingress.enabled (not .Values.routing.proxy.enabled) }}
+{{- $annotations := dict }}
+{{- $napiHost := .Values.routing.hosts.napi }}
+{{- $fapiHost := .Values.routing.hosts.fapi }}
+{{- $queryHost := .Values.routing.hosts.query }}
+{{- $napiBasePath := .Values.routing.basePaths.napi }}
+{{- $fapiBasePath := .Values.routing.basePaths.fapi }}
+{{- $queryBasePath := .Values.routing.basePaths.query }}
+{{- range $key, $value := .Values.routing.ingress.annotations }}
+{{- $_ := set $annotations $key $value }}
+{{- end }}
+{{- if and .Values.routing.ingress.tls.clusterIssuer (not .Values.routing.ingress.tls.enabled) }}
+{{- fail "routing.ingress.tls.clusterIssuer requires routing.ingress.tls.enabled=true" }}
+{{- end }}
+{{- if and .Values.routing.ingress.tls.enabled (eq .Values.routing.ingress.tls.secretName "") }}
+{{- fail "routing.ingress.tls.secretName is required when ingress TLS is enabled" }}
+{{- end }}
+{{- if and .Values.profiles.node.enabled .Values.api.enabled (eq $napiHost "") }}
+{{- fail "routing.ingress host is required for each enabled production endpoint" }}
+{{- end }}
+{{- if and .Values.profiles.portal.enabled .Values.federation.enabled (eq $fapiHost "") }}
+{{- fail "routing.ingress host is required for each enabled production endpoint" }}
+{{- end }}
+{{- if and .Values.profiles.portal.enabled .Values.queryFederation.enabled (eq $queryHost "") }}
+{{- fail "routing.ingress host is required for each enabled production endpoint" }}
+{{- end }}
+{{- if .Values.routing.ingress.tls.clusterIssuer }}
+{{- $_ := set $annotations "cert-manager.io/cluster-issuer" .Values.routing.ingress.tls.clusterIssuer }}
+{{- end }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "neurobagel.fullname" . }}
+  labels:
+    {{- include "neurobagel.labels" . | nindent 4 }}
+  {{- if gt (len $annotations) 0 }}
+  annotations:
+    {{- toYaml $annotations | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.routing.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- if .Values.routing.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ $napiHost | quote }}
+        - {{ $fapiHost | quote }}
+        - {{ $queryHost | quote }}
+      secretName: {{ .Values.routing.ingress.tls.secretName }}
+  {{- end }}
+  rules:
+    {{- if and .Values.profiles.node.enabled .Values.api.enabled (ne $napiHost "") }}
+    - host: {{ $napiHost | quote }}
+      http:
+        paths:
+          - path: {{ $napiBasePath }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "neurobagel.componentFullname" (list . "api") }}
+                port:
+                  number: {{ .Values.api.service.port }}
+    {{- end }}
+    {{- if and .Values.profiles.portal.enabled .Values.federation.enabled (ne $fapiHost "") }}
+    - host: {{ $fapiHost | quote }}
+      http:
+        paths:
+          - path: {{ $fapiBasePath }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "neurobagel.componentFullname" (list . "federation") }}
+                port:
+                  number: {{ .Values.federation.service.port }}
+    {{- end }}
+    {{- if and .Values.profiles.portal.enabled .Values.queryFederation.enabled (ne $queryHost "") }}
+    - host: {{ $queryHost | quote }}
+      http:
+        paths:
+          - path: {{ $queryBasePath }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "neurobagel.componentFullname" (list . "query-federation") }}
+                port:
+                  number: {{ .Values.queryFederation.service.port }}
+    {{- end }}
+{{- end }}

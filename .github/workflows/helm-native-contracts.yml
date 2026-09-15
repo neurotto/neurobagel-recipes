@@ -1,0 +1,46 @@
+name: Helm Native Contracts
+
+on:
+  pull_request:
+    paths:
+      - charts/**
+      - scripts/helm-render-contracts.sh
+      - scripts/helm-test-matrix.sh
+      - README.md
+      - .github/workflows/helm-native-contracts.yml
+  workflow_dispatch:
+
+jobs:
+  contracts-and-lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4.3.1
+
+      - name: Render contracts
+        run: ./scripts/helm-render-contracts.sh
+
+      - name: Helm lint
+        run: helm lint charts/neurobagel
+
+      - name: Matrix-style template smoke
+        run: |
+          set -euo pipefail
+          scenarios=(
+            dev-node
+            dev-full
+            prod-native
+            prod-ingress
+            prod-ingress-cert-manager
+            prod-ingress-native-routing
+          )
+
+          for scenario in "${scenarios[@]}"; do
+            values_file="charts/neurobagel/tests/values/${scenario}.yaml"
+            echo "Rendering ${scenario}"
+            helm template "ci-${scenario}" charts/neurobagel -f "$values_file" >/dev/null
+          done

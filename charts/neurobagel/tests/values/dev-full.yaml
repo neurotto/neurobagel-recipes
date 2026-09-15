@@ -1,0 +1,29 @@
+mode: dev
+profiles:
+  node:
+    enabled: true
+  portal:
+    enabled: true
+initData:
+  enabled: true
+  inputData:
+    hostPath:
+      enabled: true
+      path: /tmp/neurobagel-tests/mock-input
+      type: Directory
+routing:
+  proxy:
+    enabled: false
+  ingress:
+    enabled: false
+storage:
+  graphdbHome:
+    type: hostPath
+    hostPath:
+      path: /tmp/neurobagel-tests/dev-full-graphdb-home
+      type: DirectoryOrCreate
+  neurobagelData:
+    type: hostPath
+    hostPath:
+      path: /tmp/neurobagel-tests/dev-full-data
+      type: DirectoryOrCreate

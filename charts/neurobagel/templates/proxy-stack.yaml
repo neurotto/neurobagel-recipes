@@ -1,0 +1,3 @@
+{{- if and (eq .Values.mode "prod") .Values.routing.proxy.enabled }}
+{{- fail "routing.proxy.enabled is deprecated for Kubernetes-native deployment. Use routing.ingress.enabled instead." }}
+{{- end }}

@@ -1,0 +1,73 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "neurobagel.componentFullname" (list . "scripts") }}
+  labels:
+    {{- include "neurobagel.componentLabels" (list . "scripts") | nindent 4 }}
+data:
+  setup.sh: |
+{{ .Files.Get "files/scripts/setup.sh" | indent 4 }}
+  api_entrypoint.sh: |
+{{ .Files.Get "files/scripts/api_entrypoint.sh" | indent 4 }}
+  graphdb_setup.sh: |
+{{ .Files.Get "files/scripts/graphdb_setup.sh" | indent 4 }}
+  add_data_to_graph.sh: |
+{{ .Files.Get "files/scripts/add_data_to_graph.sh" | indent 4 }}
+  data-config_template.ttl: |
+{{ .Files.Get "files/scripts/data-config_template.ttl" | indent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "neurobagel.componentFullname" (list . "vocab") }}
+  labels:
+    {{- include "neurobagel.componentLabels" (list . "vocab") | nindent 4 }}
+data:
+  nb_vocab.ttl: |
+{{ .Files.Get "files/vocab/nb_vocab.ttl" | indent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "neurobagel.componentFullname" (list . "local-nodes") }}
+  labels:
+    {{- include "neurobagel.componentLabels" (list . "federation") | nindent 4 }}
+data:
+  local_nb_nodes.json: |
+{{ .Values.localNodes | toPrettyJson | indent 4 }}
+{{- if and .Values.initData.enabled (eq .Values.initData.source.overrideConfigMap "") }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "neurobagel.componentFullname" (list . "init-data-src") }}
+  labels:
+    {{- include "neurobagel.componentLabels" (list . "init-data") | nindent 4 }}
+data:
+  init_data___init__.py: |
+{{ .Files.Get "files/init_data/__init__.py" | indent 4 }}
+  init_data__process_jsonld.py: |
+{{ .Files.Get "files/init_data/process_jsonld.py" | indent 4 }}
+  init_data__requirements.txt: |
+{{ .Files.Get "files/init_data/requirements.txt" | indent 4 }}
+  init_data__utils___init__.py: |
+{{ .Files.Get "files/init_data/utils/__init__.py" | indent 4 }}
+  init_data__utils__dataset_description_model.py: |
+{{ .Files.Get "files/init_data/utils/dataset_description_model.py" | indent 4 }}
+  init_data__utils__dictionary_models.py: |
+{{ .Files.Get "files/init_data/utils/dictionary_models.py" | indent 4 }}
+  init_data__utils__models.py: |
+{{ .Files.Get "files/init_data/utils/models.py" | indent 4 }}
+{{- end }}
+{{- if and (eq .Values.mode "prod") .Values.routing.proxy.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "neurobagel.componentFullname" (list . "proxy-config") }}
+  labels:
+    {{- include "neurobagel.componentLabels" (list . "proxy") | nindent 4 }}
+data:
+  reverse_proxy.conf: |
+{{ .Values.routing.proxy.reverseProxyConf | indent 4 }}
+{{- end }}

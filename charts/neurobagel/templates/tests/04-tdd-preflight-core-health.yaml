@@ -1,0 +1,50 @@
+{{- if and .Values.tests.enabled .Values.profiles.node.enabled }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "neurobagel.componentFullname" (list . "tdd-preflight-core-health") }}
+  labels:
+    {{- include "neurobagel.componentLabels" (list . "tests") | nindent 4 }}
+    tests.neurobagel.io/category: tdd-preflight
+    tests.neurobagel.io/scenario: core-health
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-weight: "-20"
+    helm.sh/hook-delete-policy: {{ .Values.tests.hookDeletePolicy | quote }}
+spec:
+  serviceAccountName: {{ include "neurobagel.componentFullname" (list . "tests") }}
+  restartPolicy: Never
+  containers:
+    - name: kubectl
+      image: {{ .Values.tests.kubectlImage }}
+      command:
+        - /bin/sh
+        - -ec
+        - |
+          set -eu
+          graph_pod="$(kubectl get pod -l app.kubernetes.io/component=graph -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
+          api_pod="$(kubectl get pod -l app.kubernetes.io/component=api -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
+
+          if [ -z "$graph_pod" ] || [ -z "$api_pod" ]; then
+            echo "expected graph/api pods to exist before core-health preflight"
+            kubectl get pod -l app.kubernetes.io/component=graph || true
+            kubectl get pod -l app.kubernetes.io/component=api || true
+            exit 1
+          fi
+
+          kubectl get pod "$graph_pod" -o jsonpath='{.status.phase}' | grep -q '^Running$'
+          kubectl get pod "$api_pod" -o jsonpath='{.status.phase}' | grep -Eq '^(Running|Pending)$'
+
+          graph_waiting="$(kubectl get pod "$graph_pod" -o jsonpath='{.status.containerStatuses[0].state.waiting.reason}' 2>/dev/null || true)"
+          api_waiting="$(kubectl get pod "$api_pod" -o jsonpath='{.status.containerStatuses[0].state.waiting.reason}' 2>/dev/null || true)"
+
+          case "$graph_waiting" in
+            "") : ;;
+            *) echo "unexpected graph waiting state: $graph_waiting"; exit 1 ;;
+          esac
+
+          case "$api_waiting" in
+            ""|PodInitializing) : ;;
+            *) echo "unexpected api waiting state: $api_waiting"; exit 1 ;;
+          esac
+{{- end }}

@@ -1,3 +1,26 @@
+# Unreleased
+
+#### 💥 Breaking Changes
+
+- [REF] Deprecate and block proxy stack mode in Helm production deployments; use ingress-native routing and TLS values.
+
+#### 🚀 Enhancements
+
+- [ENH] Add ingress render contracts for missing TLS secret, missing host, and clusterIssuer-without-TLS invalid configuration.
+- [ENH] Rename production scenario overlay from proxy-oriented naming to native routing semantics (`prod-native`).
+- [ENH] Add CI workflow to gate Helm native contracts and matrix-style template smoke renders on pull requests.
+
+####  🧪 Tests
+
+- [TST] Harden Helm preflight tests for transient pod states and init-data TTL timing races.
+- [TST] Extend render contracts with deprecated proxy-mode negative assertions.
+
+#### 📝 Documentation
+
+- [DOC] Add migration memorandum and validation evidence artifacts for Kubernetes-native chart behavior.
+
+---
+
 # v0.9.1 (Thu Jun 04 2026)
 
 #### 🐛 Bug Fixes

@@ -1,0 +1,32 @@
+{{- if and .Values.tests.enabled (eq .Values.mode "prod") }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "neurobagel.componentFullname" (list . "tdd-routing-prod-native-only") }}
+  labels:
+    {{- include "neurobagel.componentLabels" (list . "tests") | nindent 4 }}
+    tests.neurobagel.io/category: tdd-routing
+    tests.neurobagel.io/scenario: prod-native
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-weight: "5"
+    helm.sh/hook-delete-policy: {{ .Values.tests.hookDeletePolicy | quote }}
+spec:
+  serviceAccountName: {{ include "neurobagel.componentFullname" (list . "tests") }}
+  restartPolicy: Never
+  containers:
+    - name: kubectl
+      image: {{ .Values.tests.kubectlImage }}
+      command:
+        - /bin/sh
+        - -ec
+        - |
+          if kubectl get deployment {{ include "neurobagel.componentFullname" (list . "nginx-proxy") }} >/dev/null 2>&1; then
+            echo "nginx-proxy deployment is deprecated in Kubernetes-native prod routing"
+            exit 1
+          fi
+          if kubectl get deployment {{ include "neurobagel.componentFullname" (list . "acme-companion") }} >/dev/null 2>&1; then
+            echo "acme-companion deployment is deprecated in Kubernetes-native prod routing"
+            exit 1
+          fi
+{{- end }}
