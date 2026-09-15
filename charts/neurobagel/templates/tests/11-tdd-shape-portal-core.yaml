@@ -1,0 +1,28 @@
+{{- if and .Values.tests.enabled .Values.profiles.portal.enabled }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "neurobagel.componentFullname" (list . "tdd-shape-portal-core") }}
+  labels:
+    {{- include "neurobagel.componentLabels" (list . "tests") | nindent 4 }}
+    tests.neurobagel.io/category: tdd-shape
+    tests.neurobagel.io/scenario: portal-core
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-weight: "10"
+    helm.sh/hook-delete-policy: {{ .Values.tests.hookDeletePolicy | quote }}
+spec:
+  serviceAccountName: {{ include "neurobagel.componentFullname" (list . "tests") }}
+  restartPolicy: Never
+  containers:
+    - name: kubectl
+      image: {{ .Values.tests.kubectlImage }}
+      command:
+        - /bin/sh
+        - -ec
+        - |
+          kubectl get deployment {{ include "neurobagel.componentFullname" (list . "federation") }}
+          kubectl get service {{ include "neurobagel.componentFullname" (list . "federation") }}
+          kubectl get deployment {{ include "neurobagel.componentFullname" (list . "query-federation") }}
+          kubectl get service {{ include "neurobagel.componentFullname" (list . "query-federation") }}
+{{- end }}

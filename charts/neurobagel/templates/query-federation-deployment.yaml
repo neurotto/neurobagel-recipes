@@ -1,0 +1,69 @@
+{{- if and .Values.profiles.portal.enabled .Values.queryFederation.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "neurobagel.componentFullname" (list . "query-federation") }}
+  labels:
+    {{- include "neurobagel.componentLabels" (list . "query-federation") | nindent 4 }}
+spec:
+  replicas: {{ .Values.queryFederation.replicas }}
+  selector:
+    matchLabels:
+      {{- include "neurobagel.componentSelectorLabels" (list . "query-federation") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "neurobagel.componentSelectorLabels" (list . "query-federation") | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "neurobagel.serviceAccountName" . }}
+      containers:
+        - name: query-federation
+          image: "{{ .Values.queryFederation.image.repository }}:{{ .Values.queryFederation.image.tag }}"
+          imagePullPolicy: {{ .Values.queryFederation.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 5173
+              protocol: TCP
+          env:
+            {{- if and (eq .Values.mode "prod") (ne .Values.routing.hosts.fapi "") }}
+            - name: NB_API_QUERY_URL
+              value: {{ printf "https://%s%s" .Values.routing.hosts.fapi .Values.routing.basePaths.fapi | quote }}
+            {{- else }}
+            - name: NB_API_QUERY_URL
+              value: {{ .Values.queryFederation.env.NB_API_QUERY_URL | quote }}
+            {{- end }}
+            - name: NB_QUERY_APP_BASE_PATH
+              value: {{ .Values.queryFederation.env.NB_QUERY_APP_BASE_PATH | quote }}
+            - name: NB_ENABLE_AUTH
+              value: {{ .Values.global.enableAuth | quote }}
+            - name: NB_QUERY_CLIENT_ID
+              value: {{ .Values.global.queryClientId | quote }}
+            - name: NB_QUERY_HEADER_SCRIPT
+              value: {{ .Values.queryFederation.env.NB_QUERY_HEADER_SCRIPT | quote }}
+            {{- if and (eq .Values.mode "prod") .Values.routing.proxy.enabled }}
+            - name: VIRTUAL_HOST
+              value: {{ .Values.routing.hosts.query | quote }}
+            - name: VIRTUAL_PATH
+              value: {{ .Values.routing.basePaths.query | quote }}
+            - name: VIRTUAL_PORT
+              value: "5173"
+            - name: LETSENCRYPT_HOST
+              value: {{ .Values.routing.hosts.query | quote }}
+            {{- end }}
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.queryFederation.resources | nindent 12 }}
+{{- end }}

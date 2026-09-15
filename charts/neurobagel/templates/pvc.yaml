@@ -1,0 +1,35 @@
+{{- if eq .Values.storage.neurobagelData.type "pvc" }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "neurobagel.componentFullname" (list . "data") }}
+  labels:
+    {{- include "neurobagel.componentLabels" (list . "data") | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.storage.neurobagelData.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.storage.neurobagelData.size }}
+  {{- if .Values.storage.neurobagelData.storageClassName }}
+  storageClassName: {{ .Values.storage.neurobagelData.storageClassName }}
+  {{- end }}
+---
+{{- end }}
+{{- if eq .Values.storage.graphdbHome.type "pvc" }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "neurobagel.componentFullname" (list . "graphdb-home") }}
+  labels:
+    {{- include "neurobagel.componentLabels" (list . "graph") | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.storage.graphdbHome.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.storage.graphdbHome.size }}
+  {{- if .Values.storage.graphdbHome.storageClassName }}
+  storageClassName: {{ .Values.storage.graphdbHome.storageClassName }}
+  {{- end }}
+{{- end }}

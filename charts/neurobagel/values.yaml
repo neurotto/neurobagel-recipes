@@ -1,0 +1,198 @@
+mode: dev
+
+profiles:
+  node:
+    enabled: true
+  portal:
+    enabled: true
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+podSecurityContext: {}
+securityContext: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+global:
+  enableAuth: false
+  queryClientId: ""
+
+tests:
+  enabled: true
+  kubectlImage: bitnami/kubectl:latest
+  hookDeletePolicy: before-hook-creation,hook-succeeded
+
+initData:
+  enabled: false
+  image:
+    repository: python
+    tag: 3.11-slim
+    pullPolicy: IfNotPresent
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 60
+  command: |
+    sh -euxc "pip install --no-cache-dir --upgrade -r /app/init_data/requirements.txt && rm -rf /data/* && PYTHONPATH=/app python -m init_data.process_jsonld /input_data /data"
+  env:
+    NB_CATALOG_MODE: "false"
+  source:
+    overrideConfigMap: ""
+  inputData:
+    hostPath:
+      enabled: false
+      path: ""
+      type: Directory
+
+graph:
+  enabled: true
+  replicas: 1
+  image:
+    repository: ontotext/graphdb
+    tag: 10.8.12
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 7200
+    nodePort: null
+  env:
+    NB_GRAPH_USERNAME: dbuser
+    NB_GRAPH_PORT: "7200"
+    NB_GRAPH_DB: repositories/my_db
+    NB_GRAPH_MEMORY: 2G
+  resources: {}
+
+api:
+  enabled: true
+  replicas: 1
+  image:
+    repository: neurobagel/api
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8000
+    nodePort: null
+  env:
+    NB_GRAPH_DB: repositories/my_db
+    NB_RETURN_AGG: "true"
+    NB_MIN_CELL_SIZE: "0"
+    NB_API_PORT: "8000"
+    NB_NAPI_BASE_PATH: ""
+    NB_API_ALLOWED_ORIGINS: "*"
+    NB_CONFIG: Neurobagel
+    NB_CATALOG_MODE: "false"
+  resources: {}
+
+federation:
+  enabled: true
+  replicas: 1
+  image:
+    repository: neurobagel/federation_api
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8000
+    nodePort: null
+  env:
+    NB_API_PORT: "8000"
+    NB_FAPI_BASE_PATH: ""
+    NB_FEDERATE_REMOTE_PUBLIC_NODES: "True"
+  resources: {}
+
+queryFederation:
+  enabled: true
+  replicas: 1
+  image:
+    repository: neurobagel/query_tool
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 5173
+    nodePort: null
+  env:
+    NB_API_QUERY_URL: http://localhost:8080
+    NB_QUERY_APP_BASE_PATH: /
+    NB_QUERY_HEADER_SCRIPT: ""
+  resources: {}
+
+storage:
+  graphdbHome:
+    type: pvc
+    accessMode: ReadWriteOnce
+    size: 20Gi
+    storageClassName: ""
+    hostPath:
+      path: /tmp/neurobagel/graphdb-home
+      type: DirectoryOrCreate
+  neurobagelData:
+    type: pvc
+    accessMode: ReadWriteOnce
+    size: 5Gi
+    storageClassName: ""
+    hostPath:
+      path: /tmp/neurobagel/neurobagel-data
+      type: DirectoryOrCreate
+
+secrets:
+  existingSecret: ""
+  create: true
+  name: ""
+  adminPassword: neurobagel-admin-password-change-me
+  userPassword: neurobagel-user-password-change-me
+  keys:
+    admin: admin-password
+    user: user-password
+
+routing:
+  hosts:
+    napi: ""
+    fapi: ""
+    query: ""
+  basePaths:
+    napi: /
+    fapi: /
+    query: /
+  proxy:
+    enabled: false
+    acme:
+      enabled: false
+    reverseProxyConf: |
+      proxy_read_timeout 900;
+      proxy_connect_timeout 900;
+      proxy_send_timeout 900;
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    tls:
+      enabled: false
+      secretName: ""
+      clusterIssuer: ""
+
+dev:
+  hostPath:
+    enabled: true
+  exposure:
+    apiNodePort: null
+    graphNodePort: null
+    federationNodePort: null
+    queryNodePort: null
+
+prod:
+  internalOnly: true
+
+localNodes:
+  - NodeName: Local graph 1
+    ApiURL: http://api:8000

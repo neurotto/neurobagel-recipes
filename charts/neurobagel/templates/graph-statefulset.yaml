@@ -1,0 +1,109 @@
+{{- if and .Values.profiles.node.enabled .Values.graph.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "neurobagel.componentFullname" (list . "graph") }}
+  labels:
+    {{- include "neurobagel.componentLabels" (list . "graph") | nindent 4 }}
+spec:
+  serviceName: {{ include "neurobagel.componentFullname" (list . "graph") }}
+  replicas: {{ .Values.graph.replicas }}
+  selector:
+    matchLabels:
+      {{- include "neurobagel.componentSelectorLabels" (list . "graph") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "neurobagel.componentSelectorLabels" (list . "graph") | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "neurobagel.serviceAccountName" . }}
+      containers:
+        - name: graph
+          image: "{{ .Values.graph.image.repository }}:{{ .Values.graph.image.tag }}"
+          imagePullPolicy: {{ .Values.graph.image.pullPolicy }}
+          command:
+            - /bin/bash
+            - /usr/src/neurobagel/scripts/setup.sh
+          ports:
+            - name: graph
+              containerPort: 7200
+              protocol: TCP
+          env:
+            - name: NB_GRAPH_USERNAME
+              value: {{ .Values.graph.env.NB_GRAPH_USERNAME | quote }}
+            - name: NB_GRAPH_PORT
+              value: {{ .Values.graph.env.NB_GRAPH_PORT | quote }}
+            - name: NB_GRAPH_DB
+              value: {{ .Values.graph.env.NB_GRAPH_DB | quote }}
+            - name: NB_GRAPH_MEMORY
+              value: {{ .Values.graph.env.NB_GRAPH_MEMORY | quote }}
+          volumeMounts:
+            - name: graphdb-home
+              mountPath: /opt/graphdb/home
+            - name: scripts
+              mountPath: /usr/src/neurobagel/scripts
+            - name: vocab
+              mountPath: /usr/src/neurobagel/vocab
+            - name: neurobagel-data
+              mountPath: /data
+            - name: graph-secrets
+              mountPath: /run/secrets
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /rest/repositories
+              port: graph
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /rest/repositories
+              port: graph
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.graph.resources | nindent 12 }}
+      volumes:
+        - name: graphdb-home
+          {{- if eq .Values.storage.graphdbHome.type "pvc" }}
+          persistentVolumeClaim:
+            claimName: {{ include "neurobagel.componentFullname" (list . "graphdb-home") }}
+          {{- else if eq .Values.storage.graphdbHome.type "hostPath" }}
+          hostPath:
+            path: {{ .Values.storage.graphdbHome.hostPath.path }}
+            type: {{ .Values.storage.graphdbHome.hostPath.type }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: scripts
+          configMap:
+            name: {{ include "neurobagel.componentFullname" (list . "scripts") }}
+            defaultMode: 0755
+        - name: vocab
+          configMap:
+            name: {{ include "neurobagel.componentFullname" (list . "vocab") }}
+        - name: neurobagel-data
+          {{- if eq .Values.storage.neurobagelData.type "pvc" }}
+          persistentVolumeClaim:
+            claimName: {{ include "neurobagel.componentFullname" (list . "data") }}
+          {{- else if eq .Values.storage.neurobagelData.type "hostPath" }}
+          hostPath:
+            path: {{ .Values.storage.neurobagelData.hostPath.path }}
+            type: {{ .Values.storage.neurobagelData.hostPath.type }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: graph-secrets
+          secret:
+            secretName: {{ include "neurobagel.secretName" . }}
+            items:
+              - key: {{ .Values.secrets.keys.admin }}
+                path: db_admin_password
+              - key: {{ .Values.secrets.keys.user }}
+                path: db_user_password
+{{- end }}

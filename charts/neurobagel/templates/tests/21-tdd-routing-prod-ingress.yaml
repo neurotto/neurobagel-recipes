@@ -1,0 +1,39 @@
+{{- if and .Values.tests.enabled (eq .Values.mode "prod") .Values.routing.ingress.enabled (not .Values.routing.proxy.enabled) }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "neurobagel.componentFullname" (list . "tdd-routing-prod-ingress") }}
+  labels:
+    {{- include "neurobagel.componentLabels" (list . "tests") | nindent 4 }}
+    tests.neurobagel.io/category: tdd-routing
+    tests.neurobagel.io/scenario: prod-ingress
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: {{ .Values.tests.hookDeletePolicy | quote }}
+spec:
+  serviceAccountName: {{ include "neurobagel.componentFullname" (list . "tests") }}
+  restartPolicy: Never
+  containers:
+    - name: kubectl
+      image: {{ .Values.tests.kubectlImage }}
+      command:
+        - /bin/sh
+        - -ec
+        - |
+          kubectl get ingress {{ include "neurobagel.fullname" . }}
+          kubectl get ingress {{ include "neurobagel.fullname" . }} -o jsonpath='{.spec.ingressClassName}' | grep -q '^{{ .Values.routing.ingress.className }}$'
+          {{- if .Values.routing.ingress.tls.enabled }}
+          kubectl get ingress {{ include "neurobagel.fullname" . }} -o jsonpath='{.spec.tls[0].secretName}' | grep -q '^{{ .Values.routing.ingress.tls.secretName }}$'
+          kubectl get ingress {{ include "neurobagel.fullname" . }} -o jsonpath='{.spec.tls[0].hosts[*]}' | grep -q '{{ .Values.routing.hosts.napi }}'
+          kubectl get ingress {{ include "neurobagel.fullname" . }} -o jsonpath='{.spec.tls[0].hosts[*]}' | grep -q '{{ .Values.routing.hosts.fapi }}'
+          kubectl get ingress {{ include "neurobagel.fullname" . }} -o jsonpath='{.spec.tls[0].hosts[*]}' | grep -q '{{ .Values.routing.hosts.query }}'
+          {{- end }}
+          {{- if .Values.routing.ingress.tls.clusterIssuer }}
+          kubectl get ingress {{ include "neurobagel.fullname" . }} -o jsonpath='{.metadata.annotations.cert-manager\.io/cluster-issuer}' | grep -q '^{{ .Values.routing.ingress.tls.clusterIssuer }}$'
+          {{- end }}
+          if kubectl get deployment {{ include "neurobagel.componentFullname" (list . "nginx-proxy") }} >/dev/null 2>&1; then
+            echo "nginx-proxy deployment should not exist when ingress is enabled"
+            exit 1
+          fi
+{{- end }}

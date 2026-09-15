@@ -1,0 +1,42 @@
+mode: prod
+profiles:
+  node:
+    enabled: true
+  portal:
+    enabled: true
+initData:
+  enabled: true
+  inputData:
+    hostPath:
+      enabled: true
+      path: /tmp/neurobagel-tests/mock-input
+      type: Directory
+routing:
+  hosts:
+    napi: napi.example.org
+    fapi: fapi.example.org
+    query: query.example.org
+  basePaths:
+    napi: /
+    fapi: /
+    query: /
+  proxy:
+    enabled: false
+  ingress:
+    enabled: true
+    className: nginx
+    tls:
+      enabled: true
+      secretName: neurobagel-tls
+      clusterIssuer: letsencrypt-prod
+storage:
+  graphdbHome:
+    type: hostPath
+    hostPath:
+      path: /tmp/neurobagel-tests/prod-ingress-cert-manager-graphdb-home
+      type: DirectoryOrCreate
+  neurobagelData:
+    type: hostPath
+    hostPath:
+      path: /tmp/neurobagel-tests/prod-ingress-cert-manager-data
+      type: DirectoryOrCreate

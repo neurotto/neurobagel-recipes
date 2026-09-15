@@ -1,0 +1,83 @@
+{{- if and .Values.profiles.node.enabled .Values.graph.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "neurobagel.componentFullname" (list . "graph") }}
+  labels:
+    {{- include "neurobagel.componentLabels" (list . "graph") | nindent 4 }}
+spec:
+  type: {{ .Values.graph.service.type }}
+  ports:
+    - name: graph
+      port: {{ .Values.graph.service.port }}
+      targetPort: graph
+      protocol: TCP
+      {{- if .Values.graph.service.nodePort }}
+      nodePort: {{ .Values.graph.service.nodePort }}
+      {{- end }}
+  selector:
+    {{- include "neurobagel.componentSelectorLabels" (list . "graph") | nindent 4 }}
+---
+{{- end }}
+{{- if and .Values.profiles.node.enabled .Values.api.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "neurobagel.componentFullname" (list . "api") }}
+  labels:
+    {{- include "neurobagel.componentLabels" (list . "api") | nindent 4 }}
+spec:
+  type: {{ .Values.api.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.api.service.port }}
+      targetPort: http
+      protocol: TCP
+      {{- if .Values.api.service.nodePort }}
+      nodePort: {{ .Values.api.service.nodePort }}
+      {{- end }}
+  selector:
+    {{- include "neurobagel.componentSelectorLabels" (list . "api") | nindent 4 }}
+---
+{{- end }}
+{{- if and .Values.profiles.portal.enabled .Values.federation.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "neurobagel.componentFullname" (list . "federation") }}
+  labels:
+    {{- include "neurobagel.componentLabels" (list . "federation") | nindent 4 }}
+spec:
+  type: {{ .Values.federation.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.federation.service.port }}
+      targetPort: http
+      protocol: TCP
+      {{- if .Values.federation.service.nodePort }}
+      nodePort: {{ .Values.federation.service.nodePort }}
+      {{- end }}
+  selector:
+    {{- include "neurobagel.componentSelectorLabels" (list . "federation") | nindent 4 }}
+---
+{{- end }}
+{{- if and .Values.profiles.portal.enabled .Values.queryFederation.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "neurobagel.componentFullname" (list . "query-federation") }}
+  labels:
+    {{- include "neurobagel.componentLabels" (list . "query-federation") | nindent 4 }}
+spec:
+  type: {{ .Values.queryFederation.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.queryFederation.service.port }}
+      targetPort: http
+      protocol: TCP
+      {{- if .Values.queryFederation.service.nodePort }}
+      nodePort: {{ .Values.queryFederation.service.nodePort }}
+      {{- end }}
+  selector:
+    {{- include "neurobagel.componentSelectorLabels" (list . "query-federation") | nindent 4 }}
+{{- end }}

@@ -1,0 +1,23 @@
+mode: dev
+profiles:
+  node:
+    enabled: true
+  portal:
+    enabled: false
+initData:
+  enabled: true
+  inputData:
+    hostPath:
+      enabled: false
+      path: ""
+storage:
+  graphdbHome:
+    type: hostPath
+    hostPath:
+      path: /tmp/neurobagel-tests/init-data-missing-input-path-graphdb-home
+      type: DirectoryOrCreate
+  neurobagelData:
+    type: hostPath
+    hostPath:
+      path: /tmp/neurobagel-tests/init-data-missing-input-path-data
+      type: DirectoryOrCreate
