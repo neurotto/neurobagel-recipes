@@ -371,5 +371,8 @@ prod:
 
 # -- Local node definitions exposed to the portal and federation services.
 localNodes:
-  - NodeName: Local graph 1
+  - 
+    # localNodes[0].NodeName -- Display name for a local node entry.
+    NodeName: Local graph 1
+    # localNodes[0].ApiURL -- Internal API URL for a local node entry.
     ApiURL: http://api:8000

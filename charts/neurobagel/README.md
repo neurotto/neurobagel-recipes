@@ -107,6 +107,8 @@ Kubernetes-native Helm chart for deploying Neurobagel node and portal profiles
 | initData.source.overrideConfigMap | string | `""` | Name of a ConfigMap containing replacement init_data sources. |
 | initData.ttlSecondsAfterFinished | int | `60` | Seconds to keep completed init-data jobs before Kubernetes garbage-collects them. |
 | localNodes | list | `[{"ApiURL":"http://api:8000","NodeName":"Local graph 1"}]` | Local node definitions exposed to the portal and federation services. |
+| localNodes[0].ApiURL | string | `"http://api:8000"` | Internal API URL for a local node entry. |
+| localNodes[0].NodeName | string | `"Local graph 1"` | Display name for a local node entry. |
 | mode | string | `"dev"` | Deployment mode profile to render (`dev` or `prod`). |
 | nameOverride | string | `""` | Override the chart name used for generated resources. |
 | nodeSelector | object | `{}` | Node selector labels for chart workloads. |
