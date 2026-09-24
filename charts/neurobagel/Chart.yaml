@@ -2,7 +2,7 @@ apiVersion: v2
 name: neurobagel
 description: Kubernetes-native Helm chart for deploying Neurobagel node and portal profiles
 type: application
-version: 0.1.0
+version: 0.1.1
 appVersion: "1.16.0"
 home: https://github.com/neurobagel/recipes
 sources:
