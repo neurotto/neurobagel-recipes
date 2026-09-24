@@ -1,198 +1,376 @@
+# -- Deployment mode profile to render (`dev` or `prod`).
 mode: dev
 
+# -- Toggle the node and portal deployment profiles.
 profiles:
+  # -- Enable the Neurobagel node components.
   node:
+    # -- Deploy the node profile resources.
     enabled: true
+  # -- Enable the Neurobagel portal components.
   portal:
+    # -- Deploy the portal profile resources.
     enabled: true
 
+# -- Image pull secrets applied to chart workloads.
 imagePullSecrets: []
+# -- Override the chart name used for generated resources.
 nameOverride: ""
+# -- Override the fully qualified release name used for generated resources.
 fullnameOverride: ""
 
+# -- Service account configuration shared by chart workloads.
 serviceAccount:
+  # -- Create a dedicated service account for the release.
   create: true
+  # -- Automatically mount the service account token into pods.
   automount: true
+  # -- Extra annotations to add to the service account.
   annotations: {}
+  # -- Reuse an existing service account name instead of creating one.
   name: ""
 
+# -- Extra annotations to add to workload pods.
 podAnnotations: {}
+# -- Extra labels to add to workload pods.
 podLabels: {}
+# -- Pod-level security context applied to workload pods.
 podSecurityContext: {}
+# -- Container-level security context applied to workload containers.
 securityContext: {}
+# -- Node selector labels for chart workloads.
 nodeSelector: {}
+# -- Tolerations applied to chart workloads.
 tolerations: []
+# -- Affinity rules applied to chart workloads.
 affinity: {}
 
+# -- Shared application settings consumed across components.
 global:
+  # -- Enable authentication-aware frontend behavior.
   enableAuth: false
+  # -- OAuth client ID exposed to the query application when auth is enabled.
   queryClientId: ""
 
+# -- Helm test hook settings.
 tests:
+  # -- Enable Helm test resources bundled with the chart.
   enabled: true
+  # -- Kubectl image used by Helm test jobs.
   kubectlImage: bitnami/kubectl:latest
+  # -- Hook delete policy applied to Helm test jobs.
   hookDeletePolicy: before-hook-creation,hook-succeeded
 
+# -- Init-data job configuration for preparing graph input data.
 initData:
+  # -- Run the init-data job.
   enabled: false
+  # -- Container image settings for the init-data job.
   image:
+    # -- Init-data image repository.
     repository: python
+    # -- Init-data image tag.
     tag: 3.11-slim
+    # -- Init-data image pull policy.
     pullPolicy: IfNotPresent
+  # -- Maximum number of retries before the init-data job is marked failed.
   backoffLimit: 3
+  # -- Seconds to keep completed init-data jobs before Kubernetes garbage-collects them.
   ttlSecondsAfterFinished: 60
+  # -- Command executed by the init-data job.
   command: |
     sh -euxc "pip install --no-cache-dir --upgrade -r /app/init_data/requirements.txt && rm -rf /data/* && PYTHONPATH=/app python -m init_data.process_jsonld /input_data /data"
+  # -- Extra environment variables for the init-data job.
   env:
+    # -- Run init-data in catalog mode instead of single-node mode.
     NB_CATALOG_MODE: "false"
+  # -- Override the embedded init-data source files with a ConfigMap.
   source:
+    # -- Name of a ConfigMap containing replacement init_data sources.
     overrideConfigMap: ""
+  # -- Input dataset mount configuration for the init-data job.
   inputData:
+    # -- HostPath mount settings for source datasets.
     hostPath:
+      # -- Mount input data from a hostPath instead of supplying another volume source.
       enabled: false
+      # -- Absolute host path containing the input JSON-LD datasets.
       path: ""
+      # -- HostPath volume type for the input dataset mount.
       type: Directory
 
+# -- GraphDB deployment configuration.
 graph:
+  # -- Deploy the GraphDB stateful workload.
   enabled: true
+  # -- Number of GraphDB replicas.
   replicas: 1
+  # -- GraphDB container image settings.
   image:
+    # -- GraphDB image repository.
     repository: ontotext/graphdb
+    # -- GraphDB image tag.
     tag: 10.8.12
+    # -- GraphDB image pull policy.
     pullPolicy: IfNotPresent
+  # -- Service settings for GraphDB.
   service:
+    # -- GraphDB service type.
     type: ClusterIP
+    # -- GraphDB service port.
     port: 7200
+    # -- Fixed NodePort to use when `graph.service.type` is `NodePort`.
     nodePort: null
+  # -- Environment variables for GraphDB.
   env:
+    # -- GraphDB admin username.
     NB_GRAPH_USERNAME: dbuser
+    # -- GraphDB listen port.
     NB_GRAPH_PORT: "7200"
+    # -- Graph repository path used by Neurobagel services.
     NB_GRAPH_DB: repositories/my_db
+    # -- Java heap memory setting for GraphDB.
     NB_GRAPH_MEMORY: 2G
+  # -- Compute resource requests and limits for GraphDB.
   resources: {}
 
+# -- Neurobagel API deployment configuration.
 api:
+  # -- Deploy the Neurobagel API.
   enabled: true
+  # -- Number of API replicas.
   replicas: 1
+  # -- API container image settings.
   image:
+    # -- API image repository.
     repository: neurobagel/api
+    # -- API image tag.
     tag: latest
+    # -- API image pull policy.
     pullPolicy: IfNotPresent
+  # -- Service settings for the API.
   service:
+    # -- API service type.
     type: ClusterIP
+    # -- API service port.
     port: 8000
+    # -- Fixed NodePort to use when `api.service.type` is `NodePort`.
     nodePort: null
+  # -- Environment variables for the API service.
   env:
+    # -- Graph repository path used by the API.
     NB_GRAPH_DB: repositories/my_db
+    # -- Enable aggregate counts in API responses.
     NB_RETURN_AGG: "true"
+    # -- Minimum cell size returned by the API.
     NB_MIN_CELL_SIZE: "0"
+    # -- API container listen port.
     NB_API_PORT: "8000"
+    # -- Base path prefix served by the API.
     NB_NAPI_BASE_PATH: ""
+    # -- Allowed CORS origins for the API.
     NB_API_ALLOWED_ORIGINS: "*"
+    # -- Named Neurobagel configuration profile used by the API.
     NB_CONFIG: Neurobagel
+    # -- Run the API in catalog mode instead of single-node mode.
     NB_CATALOG_MODE: "false"
+  # -- Compute resource requests and limits for the API.
   resources: {}
 
+# -- Federation API deployment configuration.
 federation:
+  # -- Deploy the federation API.
   enabled: true
+  # -- Number of federation API replicas.
   replicas: 1
+  # -- Federation API container image settings.
   image:
+    # -- Federation API image repository.
     repository: neurobagel/federation_api
+    # -- Federation API image tag.
     tag: latest
+    # -- Federation API image pull policy.
     pullPolicy: IfNotPresent
+  # -- Service settings for the federation API.
   service:
+    # -- Federation API service type.
     type: ClusterIP
+    # -- Federation API service port.
     port: 8000
+    # -- Fixed NodePort to use when `federation.service.type` is `NodePort`.
     nodePort: null
+  # -- Environment variables for the federation API.
   env:
+    # -- Federation API container listen port.
     NB_API_PORT: "8000"
+    # -- Base path prefix served by the federation API.
     NB_FAPI_BASE_PATH: ""
+    # -- Include public remote nodes when federating queries.
     NB_FEDERATE_REMOTE_PUBLIC_NODES: "True"
+  # -- Compute resource requests and limits for the federation API.
   resources: {}
 
+# -- Query frontend deployment configuration.
 queryFederation:
+  # -- Deploy the query frontend.
   enabled: true
+  # -- Number of query frontend replicas.
   replicas: 1
+  # -- Query frontend container image settings.
   image:
+    # -- Query frontend image repository.
     repository: neurobagel/query_tool
+    # -- Query frontend image tag.
     tag: latest
+    # -- Query frontend image pull policy.
     pullPolicy: IfNotPresent
+  # -- Service settings for the query frontend.
   service:
+    # -- Query frontend service type.
     type: ClusterIP
+    # -- Query frontend service port.
     port: 5173
+    # -- Fixed NodePort to use when `queryFederation.service.type` is `NodePort`.
     nodePort: null
+  # -- Environment variables for the query frontend.
   env:
+    # -- Backend API URL consumed by the query frontend.
     NB_API_QUERY_URL: http://localhost:8080
+    # -- Base path prefix served by the query frontend.
     NB_QUERY_APP_BASE_PATH: /
+    # -- Optional inline script injected into the query frontend header.
     NB_QUERY_HEADER_SCRIPT: ""
+  # -- Compute resource requests and limits for the query frontend.
   resources: {}
 
+# -- Persistent storage settings used by GraphDB and generated Neurobagel data.
 storage:
+  # -- Storage settings for the GraphDB home volume.
   graphdbHome:
+    # -- Volume backend type for GraphDB home (`pvc` or `hostPath`).
     type: pvc
+    # -- PersistentVolume access mode for GraphDB home.
     accessMode: ReadWriteOnce
+    # -- Requested GraphDB home volume size.
     size: 20Gi
+    # -- StorageClass name for the GraphDB home PVC. Leave empty for the cluster default.
     storageClassName: ""
+    # -- HostPath settings used when `storage.graphdbHome.type` is `hostPath`.
     hostPath:
+      # -- Host path for GraphDB home data.
       path: /tmp/neurobagel/graphdb-home
+      # -- HostPath volume type for GraphDB home.
       type: DirectoryOrCreate
+  # -- Storage settings for generated Neurobagel data.
   neurobagelData:
+    # -- Volume backend type for Neurobagel data (`pvc` or `hostPath`).
     type: pvc
+    # -- PersistentVolume access mode for Neurobagel data.
     accessMode: ReadWriteOnce
+    # -- Requested Neurobagel data volume size.
     size: 5Gi
+    # -- StorageClass name for the Neurobagel data PVC. Leave empty for the cluster default.
     storageClassName: ""
+    # -- HostPath settings used when `storage.neurobagelData.type` is `hostPath`.
     hostPath:
+      # -- Host path for generated Neurobagel data.
       path: /tmp/neurobagel/neurobagel-data
+      # -- HostPath volume type for generated Neurobagel data.
       type: DirectoryOrCreate
 
+# -- Secret management for GraphDB credentials.
 secrets:
+  # -- Reuse an existing Secret instead of creating one.
   existingSecret: ""
+  # -- Create a Secret for GraphDB credentials.
   create: true
+  # -- Override the generated Secret name.
   name: ""
+  # @ignored
+  # -- Admin password stored in the Secret when it is created by the chart.
   adminPassword: neurobagel-admin-password-change-me
+  # @ignored
+  # -- User password stored in the Secret when it is created by the chart.
   userPassword: neurobagel-user-password-change-me
+  # -- Secret key names expected by the workloads.
   keys:
+    # -- Secret key holding the admin password.
     admin: admin-password
+    # -- Secret key holding the user password.
     user: user-password
 
+# -- External routing settings for the API, federation API, and query frontend.
 routing:
+  # -- Hostnames assigned to ingress or proxy routes.
   hosts:
+    # -- Hostname for the Neurobagel API route.
     napi: ""
+    # -- Hostname for the federation API route.
     fapi: ""
+    # -- Hostname for the query frontend route.
     query: ""
+  # -- URL path prefixes assigned to ingress or proxy routes.
   basePaths:
+    # -- Base path for the Neurobagel API route.
     napi: /
+    # -- Base path for the federation API route.
     fapi: /
+    # -- Base path for the query frontend route.
     query: /
+  # -- Deprecated proxy-stack routing settings.
   proxy:
+    # -- Enable the deprecated reverse-proxy stack.
     enabled: false
+    # -- ACME automation settings for the deprecated proxy stack.
     acme:
+      # -- Enable ACME certificate management for the deprecated proxy stack.
       enabled: false
+    # -- Raw reverse proxy configuration injected into the proxy stack.
     reverseProxyConf: |
       proxy_read_timeout 900;
       proxy_connect_timeout 900;
       proxy_send_timeout 900;
+  # -- Native Kubernetes ingress settings.
   ingress:
+    # -- Expose services through a Kubernetes Ingress.
     enabled: false
+    # -- Ingress class name to target.
     className: ""
+    # -- Extra annotations to add to the Ingress.
     annotations: {}
+    # -- TLS settings for the Ingress.
     tls:
+      # -- Enable TLS on the Ingress.
       enabled: false
+      # -- Existing Secret name containing the TLS certificate.
       secretName: ""
+      # -- cert-manager ClusterIssuer name to annotate on the Ingress.
       clusterIssuer: ""
 
+# -- Development-mode overrides.
 dev:
+  # -- HostPath-specific development settings.
   hostPath:
+    # -- Use hostPath-backed storage defaults in development mode.
     enabled: true
+  # -- Development service exposure settings.
   exposure:
+    # -- NodePort override for the API service in development mode.
     apiNodePort: null
+    # -- NodePort override for the GraphDB service in development mode.
     graphNodePort: null
+    # -- NodePort override for the federation API service in development mode.
     federationNodePort: null
+    # -- NodePort override for the query frontend service in development mode.
     queryNodePort: null
 
+# -- Production-mode overrides.
 prod:
+  # -- Keep production services cluster-internal unless ingress is enabled.
   internalOnly: true
 
+# -- Local node definitions exposed to the portal and federation services. Each entry should include a display `NodeName` and an internal `ApiURL`.
 localNodes:
-  - NodeName: Local graph 1
+  -
+    NodeName: Local graph 1
     ApiURL: http://api:8000
