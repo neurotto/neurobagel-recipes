@@ -286,8 +286,10 @@ secrets:
   create: true
   # -- Override the generated Secret name.
   name: ""
+  # @ignored
   # -- Admin password stored in the Secret when it is created by the chart.
   adminPassword: neurobagel-admin-password-change-me
+  # @ignored
   # -- User password stored in the Secret when it is created by the chart.
   userPassword: neurobagel-user-password-change-me
   # -- Secret key names expected by the workloads.

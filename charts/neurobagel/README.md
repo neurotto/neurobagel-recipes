@@ -158,15 +158,13 @@ Kubernetes-native Helm chart for deploying Neurobagel node and portal profiles
 | routing.proxy.acme.enabled | bool | `false` | Enable ACME certificate management for the deprecated proxy stack. |
 | routing.proxy.enabled | bool | `false` | Enable the deprecated reverse-proxy stack. |
 | routing.proxy.reverseProxyConf | string | `"proxy_read_timeout 900;\nproxy_connect_timeout 900;\nproxy_send_timeout 900;\n"` | Raw reverse proxy configuration injected into the proxy stack. |
-| secrets | object | `{"adminPassword":"neurobagel-admin-password-change-me","create":true,"existingSecret":"","keys":{"admin":"admin-password","user":"user-password"},"name":"","userPassword":"neurobagel-user-password-change-me"}` | Secret management for GraphDB credentials. |
-| secrets.adminPassword | string | `"neurobagel-admin-password-change-me"` | Admin password stored in the Secret when it is created by the chart. |
+| secrets | object | `{"create":true,"existingSecret":"","keys":{"admin":"admin-password","user":"user-password"},"name":""}` | Secret management for GraphDB credentials. |
 | secrets.create | bool | `true` | Create a Secret for GraphDB credentials. |
 | secrets.existingSecret | string | `""` | Reuse an existing Secret instead of creating one. |
 | secrets.keys | object | `{"admin":"admin-password","user":"user-password"}` | Secret key names expected by the workloads. |
 | secrets.keys.admin | string | `"admin-password"` | Secret key holding the admin password. |
 | secrets.keys.user | string | `"user-password"` | Secret key holding the user password. |
 | secrets.name | string | `""` | Override the generated Secret name. |
-| secrets.userPassword | string | `"neurobagel-user-password-change-me"` | User password stored in the Secret when it is created by the chart. |
 | securityContext | object | `{}` | Container-level security context applied to workload containers. |
 | serviceAccount | object | `{"annotations":{},"automount":true,"create":true,"name":""}` | Service account configuration shared by chart workloads. |
 | serviceAccount.annotations | object | `{}` | Extra annotations to add to the service account. |
