@@ -1,0 +1,151 @@
+{{- define "neurobagel.valuesTable" -}}
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+{{- range .Values }}
+{{- if regexMatch $.Pattern .Key }}
+| {{ .Key }} | {{ .Type }} | {{ .Default }} | {{ coalesce .Description .AutoDescription }} |
+{{- end }}
+{{- end }}
+{{- end -}}
+
+{{ template "chart.header" . }}
+{{ template "chart.deprecationWarning" . }}
+
+{{ template "chart.badgesSection" . }}
+
+{{ template "chart.description" . }}
+
+{{ template "chart.homepageLine" . }}
+
+{{ template "chart.maintainersSection" . }}
+
+{{ template "chart.sourcesSection" . }}
+
+## Example configurations
+
+These starter values mirror the deployment patterns used by `docker-compose.yml`, `docker-compose.prod.yml`, and `docker-compose.noproxy.prod.yml`.
+
+### Node-only development
+
+```yaml
+mode: dev
+profiles:
+  node:
+    enabled: true
+  portal:
+    enabled: false
+
+initData:
+  enabled: true
+  inputData:
+    hostPath:
+      enabled: true
+      path: /path/to/jsonld
+      type: Directory
+
+storage:
+  graphdbHome:
+    type: hostPath
+    hostPath:
+      path: /tmp/neurobagel/graphdb-home
+      type: DirectoryOrCreate
+  neurobagelData:
+    type: hostPath
+    hostPath:
+      path: /tmp/neurobagel/neurobagel-data
+      type: DirectoryOrCreate
+
+routing:
+  ingress:
+    enabled: false
+```
+
+### Portal-only development
+
+```yaml
+mode: dev
+profiles:
+  node:
+    enabled: false
+  portal:
+    enabled: true
+
+initData:
+  enabled: false
+
+localNodes:
+  - NodeName: Local graph 1
+    ApiURL: http://host.docker.internal:8000
+
+routing:
+  ingress:
+    enabled: false
+```
+
+### Production ingress with TLS
+
+```yaml
+mode: prod
+profiles:
+  node:
+    enabled: true
+  portal:
+    enabled: true
+
+initData:
+  enabled: true
+  inputData:
+    hostPath:
+      enabled: true
+      path: /srv/neurobagel/input
+      type: Directory
+
+routing:
+  hosts:
+    napi: napi.example.org
+    fapi: fapi.example.org
+    query: query.example.org
+  basePaths:
+    napi: /
+    fapi: /
+    query: /
+  ingress:
+    enabled: true
+    className: nginx
+    tls:
+      enabled: true
+      secretName: neurobagel-tls
+      clusterIssuer: letsencrypt-prod
+
+storage:
+  graphdbHome:
+    type: pvc
+    size: 20Gi
+  neurobagelData:
+    type: pvc
+    size: 5Gi
+```
+
+For runnable test overlays, see `charts/neurobagel/tests/values`.
+
+## Values
+
+### Deployment profiles and shared behavior
+
+{{ template "neurobagel.valuesTable" (dict "Pattern" "^(mode|profiles|global|localNodes)(\\.|$|\\[)" "Values" .Values) }}
+
+### Kubernetes platform settings
+
+{{ template "neurobagel.valuesTable" (dict "Pattern" "^(imagePullSecrets|nameOverride|fullnameOverride|serviceAccount|podAnnotations|podLabels|podSecurityContext|securityContext|nodeSelector|tolerations|affinity|tests)(\\.|$|\\[)" "Values" .Values) }}
+
+### Data initialization, storage, and secrets
+
+{{ template "neurobagel.valuesTable" (dict "Pattern" "^(initData|storage|secrets)(\\.|$|\\[)" "Values" .Values) }}
+
+### Service components
+
+{{ template "neurobagel.valuesTable" (dict "Pattern" "^(graph|api|federation|queryFederation)(\\.|$|\\[)" "Values" .Values) }}
+
+### Routing and environment-specific overrides
+
+{{ template "neurobagel.valuesTable" (dict "Pattern" "^(routing|dev|prod)(\\.|$|\\[)" "Values" .Values) }}
