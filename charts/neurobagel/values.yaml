@@ -369,10 +369,8 @@ prod:
   # -- Keep production services cluster-internal unless ingress is enabled.
   internalOnly: true
 
-# -- Local node definitions exposed to the portal and federation services.
+# -- Local node definitions exposed to the portal and federation services. Each entry should include a display `NodeName` and an internal `ApiURL`.
 localNodes:
-  - 
-    # localNodes[0].NodeName -- Display name for a local node entry.
+  -
     NodeName: Local graph 1
-    # localNodes[0].ApiURL -- Internal API URL for a local node entry.
     ApiURL: http://api:8000
