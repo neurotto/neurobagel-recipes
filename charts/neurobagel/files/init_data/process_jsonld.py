@@ -48,15 +48,14 @@ jsonld_key_to_dataset_attribute_mapping = {
 
 def list_files_with_extension(input_dir: Path, extension: str) -> list[Path]:
     """
-    Get a list of all files in the input directory with the specified extension
-    and log an error if no such files are found.
+    Get a list of all files in the input directory with the specified extension.
+    When no such files are present, return an empty list without treating it as an error.
     """
     file_list = list(input_dir.glob(f"*{extension}"))
     if not file_list:
-        logger.error(
+        logger.info(
             f"No {extension} files found in the data directory. "
-            f"Ensure that your dataset {extension} files are located in the directory specified by LOCAL_GRAPH_DATA, "
-            "and that you have correctly set NB_CATALOG_MODE."
+            "Nothing to add to the graph; exiting gracefully."
         )
     return file_list
 
@@ -258,7 +257,8 @@ def extract_datasets_metadata_to_dict(data_files_dir: Path, output_dir: Path) ->
         logger.info("Initializing node data in catalog mode.")
         input_jsons = list_files_with_extension(data_files_dir, ".json")
         if not input_jsons:
-            sys.exit(1)
+            logger.info("No dataset files were found in catalog mode. Creating an empty metadata index and exiting gracefully.")
+            return {}
 
         dataset_json_file_groups = defaultdict(dict)
         excluded_jsons = []
@@ -359,7 +359,8 @@ def extract_datasets_metadata_to_dict(data_files_dir: Path, output_dir: Path) ->
         input_jsonlds = list_files_with_extension(data_files_dir, ".jsonld")
         num_input_jsonlds = len(input_jsonlds)
         if not input_jsonlds:
-            sys.exit(1)
+            logger.info("No JSON-LD dataset files were found. Creating an empty metadata index and exiting gracefully.")
+            return {}
 
         excluded_jsonlds = []
         for idx, jsonld_path in enumerate(input_jsonlds, start=1):
@@ -421,6 +422,7 @@ def parse_arguments():
 if __name__ == "__main__":
     args = parse_arguments()
 
+    args.output_dir.mkdir(parents=True, exist_ok=True)
     datasets_metadata_lookup = extract_datasets_metadata_to_dict(args.input_dir, args.output_dir)
 
     with open(args.output_dir / "datasets_metadata.json", "w", encoding="utf-8") as f:

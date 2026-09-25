@@ -21,6 +21,20 @@
 
 ---
 
+# v0.1.2
+
+#### 🐛 Bug Fixes
+
+- [FIX] Gate node-only PVC and hostPath resources behind the node deployment kind so portal-only installs no longer render or require node storage.
+- [FIX] Treat empty init-data input as a graceful no-op instead of failing the job when there is nothing to add to the graph.
+- [FIX] Make the GraphDB pod wait for the init-data job to finish before startup so it does not raise on an empty/uninitialized graph.
+
+#### Authors: 1
+
+- Neurobagel
+
+---
+
 # v0.9.1 (Thu Jun 04 2026)
 
 #### 🐛 Bug Fixes

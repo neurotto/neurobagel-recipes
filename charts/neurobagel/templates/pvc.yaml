@@ -1,4 +1,4 @@
-{{- if eq .Values.storage.neurobagelData.type "pvc" }}
+{{- if and .Values.profiles.node.enabled (eq .Values.storage.neurobagelData.type "pvc") }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -16,7 +16,7 @@ spec:
   {{- end }}
 ---
 {{- end }}
-{{- if eq .Values.storage.graphdbHome.type "pvc" }}
+{{- if and .Values.profiles.node.enabled (eq .Values.storage.graphdbHome.type "pvc") }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:

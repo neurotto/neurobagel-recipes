@@ -22,6 +22,27 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "neurobagel.serviceAccountName" . }}
+      {{- if and .Values.initData.enabled .Values.profiles.node.enabled .Values.graph.enabled }}
+      initContainers:
+        - name: wait-for-init-data
+          image: busybox:1.36
+          command:
+            - /bin/sh
+            - -c
+            - |
+              i=0
+              while [ ! -f /data/datasets_metadata.json ]; do
+                i=$((i+1))
+                if [ "$i" -ge 180 ]; then
+                  echo "datasets_metadata.json was not created by init_data"
+                  exit 1
+                fi
+                sleep 2
+              done
+          volumeMounts:
+            - name: neurobagel-data
+              mountPath: /data
+      {{- end }}
       containers:
         - name: graph
           image: "{{ .Values.graph.image.repository }}:{{ .Values.graph.image.tag }}"
