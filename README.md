@@ -43,9 +43,17 @@ By default, the init-data Job uses a base Python image and executes
 `python -m init_data.process_jsonld /input_data /data` using init_data source
 files embedded in the chart package.
 
-For node profile deployments, API startup requires init-data configuration.
-Set `initData.enabled=true`, `initData.inputData.hostPath.enabled=true`, and
-provide an absolute node path for `initData.inputData.hostPath.path`.
+For node profile deployments that use the chart's init-data Job, set
+`initData.enabled=true` and provide exactly one input source:
+`initData.inputData.hostPath` or a caller-managed
+`initData.inputData.persistentVolumeClaim.existingClaim`.
+
+If another process provides `datasets_metadata.json`, leave init-data disabled,
+place the file on the shared `storage.neurobagelData` PVC or hostPath, and set
+`api.metadataIndex.waitForFile=true`. The API waits for a non-empty index for
+`api.metadataIndex.timeoutSeconds` and fails with a diagnostic if it never
+appears. The default development behavior remains unchanged unless init-data is
+enabled or this wait is explicitly requested.
 
 Portal-only deployments can keep init-data disabled.
 

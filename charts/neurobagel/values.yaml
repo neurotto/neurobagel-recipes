@@ -98,6 +98,10 @@ initData:
       path: ""
       # -- HostPath volume type for the input dataset mount.
       type: Directory
+    # -- Existing PVC containing source datasets; select this or hostPath, not both.
+    persistentVolumeClaim:
+      # -- Name of the caller-managed PVC to mount at /input_data.
+      existingClaim: ""
 
 # -- GraphDB deployment configuration.
 graph:
@@ -140,6 +144,12 @@ api:
   enabled: true
   # -- Number of API replicas.
   replicas: 1
+  # -- Contract for the metadata index consumed by the node API.
+  metadataIndex:
+    # -- Wait for an existing index when initData is disabled. initData.enabled always enables the wait.
+    waitForFile: false
+    # -- Maximum time to wait for datasets_metadata.json on the shared data volume.
+    timeoutSeconds: 360
   # -- API container image settings.
   image:
     # -- API image repository.

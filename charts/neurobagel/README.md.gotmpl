@@ -60,6 +60,23 @@ routing:
     enabled: false
 ```
 
+For a caller-managed input PVC, select it instead of `hostPath`:
+
+```yaml
+initData:
+  enabled: true
+  inputData:
+    persistentVolumeClaim:
+      existingClaim: neurobagel-input
+```
+
+For an index produced outside this chart, keep `initData.enabled: false`, mount
+the prepared `datasets_metadata.json` on the `storage.neurobagelData` volume,
+and set `api.metadataIndex.waitForFile: true`. The API then waits for a
+non-empty index up to `timeoutSeconds`; it does not create a placeholder. The
+default development behavior does not add this wait unless init-data is enabled
+or the caller opts in.
+
 ### Portal-only development
 
 ```yaml

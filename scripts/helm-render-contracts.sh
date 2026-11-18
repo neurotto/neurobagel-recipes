@@ -49,12 +49,22 @@ expect_fail \
 expect_fail \
   init-data-missing-input-path \
   charts/neurobagel/tests/values/init-data-missing-input-path.yaml \
-  "initData requires initData.inputData.hostPath.enabled=true and a non-empty initData.inputData.hostPath.path"
+  "initData.inputData requires hostPath.enabled with a path or persistentVolumeClaim.existingClaim"
 
 expect_fail \
-  node-missing-init-data \
+  init-data-hostpath-missing-path \
+  charts/neurobagel/tests/values/init-data-hostpath-missing-path.yaml \
+  "initData.inputData.hostPath.path must be non-empty when hostPath is enabled"
+
+expect_fail \
+  init-data-conflicting-inputs \
+  charts/neurobagel/tests/values/init-data-conflicting-inputs.yaml \
+  "select either hostPath or persistentVolumeClaim.existingClaim, not both"
+
+expect_fail \
+  node-missing-metadata-source \
   charts/neurobagel/tests/values/node-missing-init-data.yaml \
-  "node API requires initData.enabled=true with hostPath input data configured"
+  "node API requires storage.neurobagelData.type to be pvc or hostPath"
 
 expect_pass \
   prod-ingress-cert-manager \
@@ -63,5 +73,22 @@ expect_pass \
 expect_pass \
   prod-ingress-native-routing \
   charts/neurobagel/tests/values/prod-ingress-native-routing.yaml
+
+expect_pass \
+  node-input-pvc \
+  charts/neurobagel/tests/values/node-input-pvc.yaml
+
+expect_pass \
+  node-existing-metadata \
+  charts/neurobagel/tests/values/node-existing-metadata.yaml
+
+rendered=$(helm template node-input-pvc charts/neurobagel \
+  -f charts/neurobagel/tests/values/node-input-pvc.yaml)
+grep -q 'claimName: "shared-jsonld-input"' <<<"$rendered"
+
+rendered=$(helm template node-existing-metadata charts/neurobagel \
+  -f charts/neurobagel/tests/values/node-existing-metadata.yaml)
+grep -q '/scripts/wait-for-metadata.sh' <<<"$rendered"
+grep -q 'datasets_metadata.json' <<<"$rendered"
 
 echo "Render contracts passed."

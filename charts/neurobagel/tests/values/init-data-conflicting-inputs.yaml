@@ -1,0 +1,25 @@
+mode: dev
+profiles:
+  node:
+    enabled: true
+  portal:
+    enabled: false
+initData:
+  enabled: true
+  inputData:
+    hostPath:
+      enabled: true
+      path: /tmp/neurobagel-tests/input
+    persistentVolumeClaim:
+      existingClaim: shared-jsonld-input
+storage:
+  graphdbHome:
+    type: hostPath
+    hostPath:
+      path: /tmp/neurobagel-tests/invalid-graphdb-home
+      type: DirectoryOrCreate
+  neurobagelData:
+    type: hostPath
+    hostPath:
+      path: /tmp/neurobagel-tests/invalid-data
+      type: DirectoryOrCreate

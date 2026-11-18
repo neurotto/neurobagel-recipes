@@ -7,6 +7,8 @@ metadata:
 data:
   setup.sh: |
 {{ .Files.Get "files/scripts/setup.sh" | indent 4 }}
+  wait-for-metadata.sh: |
+{{ .Files.Get "files/scripts/wait-for-metadata.sh" | indent 4 }}
   api_entrypoint.sh: |
 {{ .Files.Get "files/scripts/api_entrypoint.sh" | indent 4 }}
   graphdb_setup.sh: |
