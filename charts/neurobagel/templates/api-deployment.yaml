@@ -1,6 +1,10 @@
 {{- if and .Values.profiles.node.enabled .Values.api.enabled }}
-{{- if or (not .Values.initData.enabled) (not .Values.initData.inputData.hostPath.enabled) (eq .Values.initData.inputData.hostPath.path "") }}
-{{- fail "node API requires initData.enabled=true with hostPath input data configured" }}
+{{- $waitForMetadata := or .Values.initData.enabled .Values.api.metadataIndex.waitForFile }}
+{{- if and $waitForMetadata (not (has .Values.storage.neurobagelData.type (list "pvc" "hostPath"))) }}
+{{- fail "node API requires storage.neurobagelData.type to be pvc or hostPath so datasets_metadata.json is shared with its producer" }}
+{{- end }}
+{{- if and $waitForMetadata (lt (int .Values.api.metadataIndex.timeoutSeconds) 2) }}
+{{- fail "api.metadataIndex.timeoutSeconds must be at least two seconds" }}
 {{- end }}
 apiVersion: apps/v1
 kind: Deployment
@@ -24,26 +28,21 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "neurobagel.serviceAccountName" . }}
-      {{- if and .Values.initData.enabled .Values.initData.inputData.hostPath.enabled (ne .Values.initData.inputData.hostPath.path "") }}
+      {{- if $waitForMetadata }}
       initContainers:
         - name: wait-for-datasets
           image: busybox:1.36
           command:
             - /bin/sh
-            - -c
-            - |
-              i=0
-              while [ ! -s /data/datasets_metadata.json ]; do
-                i=$((i+1))
-                if [ "$i" -ge 180 ]; then
-                  echo "datasets_metadata.json was not created by init_data"
-                  exit 1
-                fi
-                sleep 2
-              done
+            - /scripts/wait-for-metadata.sh
+            - /data/datasets_metadata.json
+            - {{ .Values.api.metadataIndex.timeoutSeconds | quote }}
           volumeMounts:
             - name: neurobagel-data
               mountPath: /data
+            - name: scripts
+              mountPath: /scripts
+              readOnly: true
       {{- end }}
       containers:
         - name: api

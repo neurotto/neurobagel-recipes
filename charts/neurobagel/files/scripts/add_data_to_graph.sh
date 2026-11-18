@@ -1,4 +1,5 @@
 #!/bin/bash
+set -Eeuo pipefail
 #
 # ARG_HELP([Upload JSONLD and Turtle data to a Neurobagel graph])
 # ARG_POSITIONAL_SINGLE([dir],[Path to directory containing .jsonld and/or .ttl files. ALL .jsonld and .ttl files in this directory will be uploaded.])
@@ -173,8 +174,8 @@ main() {
     if [ "$clear_data" = "on" ]; then
         echo -e "\nCLEARING EXISTING DATA FROM ${graph_db}..."
 
-        response=$(curl -u "${user}:${password}" -s -S -i -w "\n%{http_code}\n" \
-            -X POST $clear_data_url \
+        response=$(curl -f -u "${user}:${password}" -s -S -i -w "\n%{http_code}\n" \
+            -X POST "$clear_data_url" \
             -H "Content-Type: application/sparql-update" \
             --data-binary "${DELETE_TRIPLES_QUERY}")
 
@@ -193,15 +194,15 @@ main() {
 
     upload_failed=()
 
-    for db in ${jsonld_dir}/*.jsonld; do
+    for db in "${jsonld_dir}"/*.jsonld; do
         # Prevent edge case where no matching files are present in directory and so loop executes once with glob pattern string itself
         [ -e "$db" ] || continue
 
-        echo "$(basename ${db}):"
-        response=$(curl -u "${user}:${password}" -s -S -i -w "\n%{http_code}\n" \
-                    -X POST $upload_data_url \
+        echo "$(basename "$db"):"
+        response=$(curl -f -u "${user}:${password}" -s -S -i -w "\n%{http_code}\n" \
+                    -X POST "$upload_data_url" \
                     -H "Content-Type: application/ld+json" \
-                    --data-binary @${db})
+                    --data-binary "@${db}")
 
         httpcode=$(tail -n1 <<< "$response")
         if (( $httpcode < 200 || $httpcode >= 300 )); then
@@ -211,14 +212,14 @@ main() {
         echo -e "$(sed '$d' <<< "$response")\n"
     done
 
-    for file in ${jsonld_dir}/*.ttl; do
+    for file in "${jsonld_dir}"/*.ttl; do
         [ -e "$file" ] || continue
 
-        echo "$(basename ${file}):"
-        response=$(curl -u "${user}:${password}" -s -S -i -w "\n%{http_code}\n" \
-                    -X POST $upload_data_url \
+        echo "$(basename "$file"):"
+        response=$(curl -f -u "${user}:${password}" -s -S -i -w "\n%{http_code}\n" \
+                    -X POST "$upload_data_url" \
                     -H "Content-Type: text/turtle" \
-                    --data-binary @${file})
+                    --data-binary "@${file}")
 
         httpcode=$(tail -n1 <<< "$response")
         if (( $httpcode < 200 || $httpcode >= 300 )); then
@@ -232,6 +233,7 @@ main() {
     if (( ${#upload_failed[@]} != 0 )); then
         echo -e "\nERROR: Upload failed for these files:"
         printf '%s\n' "${upload_failed[@]}"
+        return 1
     fi
 }
 

@@ -24,6 +24,12 @@ jobs:
       - name: Render contracts
         run: ./scripts/helm-render-contracts.sh
 
+      - name: Metadata wait behavior
+        run: bash charts/neurobagel/tests/test_metadata_wait.sh
+
+      - name: GraphDB credential validation
+        run: bash charts/neurobagel/tests/test_graphdb_credentials.sh
+
       - name: Helm lint
         run: helm lint charts/neurobagel
 

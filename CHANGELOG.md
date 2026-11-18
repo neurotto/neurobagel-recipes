@@ -6,12 +6,16 @@
 
 #### 🚀 Enhancements
 
+- [ENH] Support caller-managed PVC input for init-data and externally produced metadata indexes.
+- [ENH] Wait for the shared dataset metadata index when configured, with a bounded timeout.
 - [ENH] Add ingress render contracts for missing TLS secret, missing host, and clusterIssuer-without-TLS invalid configuration.
 - [ENH] Rename production scenario overlay from proxy-oriented naming to native routing semantics (`prod-native`).
 - [ENH] Add CI workflow to gate Helm native contracts and matrix-style template smoke renders on pull requests.
 
 ####  🧪 Tests
 
+- [TST] Cover hostPath/PVC input modes, existing metadata indexes, invalid combinations, and bounded metadata waiting.
+- [TST] Reject invalid GraphDB credentials before any setup request and preserve JSON escaping.
 - [TST] Harden Helm preflight tests for transient pod states and init-data TTL timing races.
 - [TST] Extend render contracts with deprecated proxy-mode negative assertions.
 
@@ -25,6 +29,8 @@
 
 #### 🐛 Bug Fixes
 
+- [FIX] Preserve populated GraphDB data on startup and require authenticated repository-query readiness.
+- [FIX] Fail GraphDB setup on HTTP and upload errors without installing jq at runtime.
 - [FIX] Gate node-only PVC and hostPath resources behind the node deployment kind so portal-only installs no longer render or require node storage.
 - [FIX] Treat empty init-data input as a graceful no-op instead of failing the job when there is nothing to add to the graph.
 - [FIX] Make the GraphDB pod wait for the init-data job to finish before startup so it does not raise on an empty/uninitialized graph.

@@ -1,4 +1,4 @@
-{{- if and .Values.tests.enabled .Values.profiles.node.enabled .Values.initData.enabled .Values.initData.inputData.hostPath.enabled (ne .Values.initData.inputData.hostPath.path "") }}
+{{- if and .Values.tests.enabled .Values.profiles.node.enabled .Values.initData.enabled (or (and .Values.initData.inputData.hostPath.enabled (ne .Values.initData.inputData.hostPath.path "")) (ne .Values.initData.inputData.persistentVolumeClaim.existingClaim "")) }}
 apiVersion: v1
 kind: Pod
 metadata:

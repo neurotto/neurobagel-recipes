@@ -1,6 +1,6 @@
 # neurobagel
 
-![Version: 0.1.2](https://img.shields.io/badge/Version-0.1.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.16.0](https://img.shields.io/badge/AppVersion-1.16.0-informational?style=flat-square)
+![Version: 0.1.3](https://img.shields.io/badge/Version-0.1.3-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.16.0](https://img.shields.io/badge/AppVersion-1.16.0-informational?style=flat-square)
 
 Kubernetes-native Helm chart for deploying Neurobagel node and portal profiles
 
@@ -123,6 +123,24 @@ storage:
 
 For runnable test overlays, see `charts/neurobagel/tests/values`.
 
+Init-data input can use either a configured hostPath or a caller-managed PVC;
+select exactly one. For example, use the PVC instead of the hostPath block:
+
+```yaml
+initData:
+  enabled: true
+  inputData:
+    persistentVolumeClaim:
+      existingClaim: neurobagel-input
+```
+
+To use a metadata index produced elsewhere, disable the init-data Job, mount the
+prepared `datasets_metadata.json` on the shared `storage.neurobagelData`
+volume, and set `api.metadataIndex.waitForFile=true`. The API waits up to
+`api.metadataIndex.timeoutSeconds` and fails clearly if the index does not
+appear. This wait is enabled automatically when init-data is enabled; it is
+opt-in otherwise to preserve the default development behavior.
+
 ## Values
 
 ### Deployment profiles and shared behavior
@@ -168,7 +186,7 @@ For runnable test overlays, see `charts/neurobagel/tests/values`.
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| initData | object | `{"backoffLimit":3,"command":"sh -euxc \"pip install --no-cache-dir --upgrade -r /app/init_data/requirements.txt && rm -rf /data/* && PYTHONPATH=/app python -m init_data.process_jsonld /input_data /data\"\n","enabled":false,"env":{"NB_CATALOG_MODE":"false"},"image":{"pullPolicy":"IfNotPresent","repository":"python","tag":"3.11-slim"},"inputData":{"hostPath":{"enabled":false,"path":"","type":"Directory"}},"source":{"overrideConfigMap":""},"ttlSecondsAfterFinished":60}` | Init-data job configuration for preparing graph input data. |
+| initData | object | `{"backoffLimit":3,"command":"sh -euxc \"pip install --no-cache-dir --upgrade -r /app/init_data/requirements.txt && rm -rf /data/* && PYTHONPATH=/app python -m init_data.process_jsonld /input_data /data\"\n","enabled":false,"env":{"NB_CATALOG_MODE":"false"},"image":{"pullPolicy":"IfNotPresent","repository":"python","tag":"3.11-slim"},"inputData":{"hostPath":{"enabled":false,"path":"","type":"Directory"},"persistentVolumeClaim":{"existingClaim":""}},"source":{"overrideConfigMap":""},"ttlSecondsAfterFinished":60}` | Init-data job configuration for preparing graph input data. |
 | initData.backoffLimit | int | `3` | Maximum number of retries before the init-data job is marked failed. |
 | initData.command | string | `"sh -euxc \"pip install --no-cache-dir --upgrade -r /app/init_data/requirements.txt && rm -rf /data/* && PYTHONPATH=/app python -m init_data.process_jsonld /input_data /data\"\n"` | Command executed by the init-data job. |
 | initData.enabled | bool | `false` | Run the init-data job. |
@@ -178,11 +196,13 @@ For runnable test overlays, see `charts/neurobagel/tests/values`.
 | initData.image.pullPolicy | string | `"IfNotPresent"` | Init-data image pull policy. |
 | initData.image.repository | string | `"python"` | Init-data image repository. |
 | initData.image.tag | string | `"3.11-slim"` | Init-data image tag. |
-| initData.inputData | object | `{"hostPath":{"enabled":false,"path":"","type":"Directory"}}` | Input dataset mount configuration for the init-data job. |
+| initData.inputData | object | `{"hostPath":{"enabled":false,"path":"","type":"Directory"},"persistentVolumeClaim":{"existingClaim":""}}` | Input dataset mount configuration for the init-data job; select exactly one source. |
 | initData.inputData.hostPath | object | `{"enabled":false,"path":"","type":"Directory"}` | HostPath mount settings for source datasets. |
 | initData.inputData.hostPath.enabled | bool | `false` | Mount input data from a hostPath instead of supplying another volume source. |
 | initData.inputData.hostPath.path | string | `""` | Absolute host path containing the input JSON-LD datasets. |
 | initData.inputData.hostPath.type | string | `"Directory"` | HostPath volume type for the input dataset mount. |
+| initData.inputData.persistentVolumeClaim | object | `{"existingClaim":""}` | Existing PVC containing source datasets. |
+| initData.inputData.persistentVolumeClaim.existingClaim | string | `""` | Caller-managed PVC mounted at `/input_data`. |
 | initData.source | object | `{"overrideConfigMap":""}` | Override the embedded init-data source files with a ConfigMap. |
 | initData.source.overrideConfigMap | string | `""` | Name of a ConfigMap containing replacement init_data sources. |
 | initData.ttlSecondsAfterFinished | int | `60` | Seconds to keep completed init-data jobs before Kubernetes garbage-collects them. |
@@ -215,7 +235,7 @@ For runnable test overlays, see `charts/neurobagel/tests/values`.
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| api | object | `{"enabled":true,"env":{"NB_API_ALLOWED_ORIGINS":"*","NB_API_PORT":"8000","NB_CATALOG_MODE":"false","NB_CONFIG":"Neurobagel","NB_GRAPH_DB":"repositories/my_db","NB_MIN_CELL_SIZE":"0","NB_NAPI_BASE_PATH":"","NB_RETURN_AGG":"true"},"image":{"pullPolicy":"IfNotPresent","repository":"neurobagel/api","tag":"latest"},"replicas":1,"resources":{},"service":{"nodePort":null,"port":8000,"type":"ClusterIP"}}` | Neurobagel API deployment configuration. |
+| api | object | `{"enabled":true,"env":{"NB_API_ALLOWED_ORIGINS":"*","NB_API_PORT":"8000","NB_CATALOG_MODE":"false","NB_CONFIG":"Neurobagel","NB_GRAPH_DB":"repositories/my_db","NB_MIN_CELL_SIZE":"0","NB_NAPI_BASE_PATH":"","NB_RETURN_AGG":"true"},"image":{"pullPolicy":"IfNotPresent","repository":"neurobagel/api","tag":"latest"},"metadataIndex":{"timeoutSeconds":360,"waitForFile":false},"replicas":1,"resources":{},"service":{"nodePort":null,"port":8000,"type":"ClusterIP"}}` | Neurobagel API deployment configuration. |
 | api.enabled | bool | `true` | Deploy the Neurobagel API. |
 | api.env | object | `{"NB_API_ALLOWED_ORIGINS":"*","NB_API_PORT":"8000","NB_CATALOG_MODE":"false","NB_CONFIG":"Neurobagel","NB_GRAPH_DB":"repositories/my_db","NB_MIN_CELL_SIZE":"0","NB_NAPI_BASE_PATH":"","NB_RETURN_AGG":"true"}` | Environment variables for the API service. |
 | api.env.NB_API_ALLOWED_ORIGINS | string | `"*"` | Allowed CORS origins for the API. |
@@ -230,6 +250,9 @@ For runnable test overlays, see `charts/neurobagel/tests/values`.
 | api.image.pullPolicy | string | `"IfNotPresent"` | API image pull policy. |
 | api.image.repository | string | `"neurobagel/api"` | API image repository. |
 | api.image.tag | string | `"latest"` | API image tag. |
+| api.metadataIndex | object | `{"timeoutSeconds":360,"waitForFile":false}` | Contract for the metadata index consumed by the node API. |
+| api.metadataIndex.timeoutSeconds | int | `360` | Maximum time to wait for `datasets_metadata.json` on the shared data volume. |
+| api.metadataIndex.waitForFile | bool | `false` | Wait for an existing index when initData is disabled. initData.enabled always enables the wait. |
 | api.replicas | int | `1` | Number of API replicas. |
 | api.resources | object | `{}` | Compute resource requests and limits for the API. |
 | api.service | object | `{"nodePort":null,"port":8000,"type":"ClusterIP"}` | Service settings for the API. |

@@ -1,6 +1,14 @@
 {{- if and .Values.initData.enabled .Values.profiles.node.enabled .Values.api.enabled .Values.graph.enabled }}
-{{- if or (not .Values.initData.inputData.hostPath.enabled) (eq .Values.initData.inputData.hostPath.path "") }}
-{{- fail "initData requires initData.inputData.hostPath.enabled=true and a non-empty initData.inputData.hostPath.path" }}
+{{- $hostPathEnabled := .Values.initData.inputData.hostPath.enabled }}
+{{- $inputClaim := .Values.initData.inputData.persistentVolumeClaim.existingClaim }}
+{{- if and $hostPathEnabled (ne $inputClaim "") }}
+{{- fail "initData.inputData must select either hostPath or persistentVolumeClaim.existingClaim, not both" }}
+{{- end }}
+{{- if and $hostPathEnabled (eq .Values.initData.inputData.hostPath.path "") }}
+{{- fail "initData.inputData.hostPath.path must be non-empty when hostPath is enabled" }}
+{{- end }}
+{{- if and (not $hostPathEnabled) (eq $inputClaim "") }}
+{{- fail "initData.inputData requires hostPath.enabled with a path or persistentVolumeClaim.existingClaim" }}
 {{- end }}
 {{- $initDataSrcConfigMap := include "neurobagel.componentFullname" (list . "init-data-src") }}
 {{- if ne .Values.initData.source.overrideConfigMap "" }}
@@ -61,9 +69,14 @@ spec:
               - key: init_data__utils__models.py
                 path: init_data/utils/models.py
         - name: input-data
+          {{- if $hostPathEnabled }}
           hostPath:
             path: {{ .Values.initData.inputData.hostPath.path }}
             type: {{ .Values.initData.inputData.hostPath.type }}
+          {{- else }}
+          persistentVolumeClaim:
+            claimName: {{ $inputClaim | quote }}
+          {{- end }}
         - name: neurobagel-data
           {{- if eq .Values.storage.neurobagelData.type "pvc" }}
           persistentVolumeClaim:

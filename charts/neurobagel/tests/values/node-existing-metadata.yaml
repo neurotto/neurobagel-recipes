@@ -1,0 +1,23 @@
+mode: dev
+profiles:
+  node:
+    enabled: true
+  portal:
+    enabled: false
+initData:
+  enabled: false
+api:
+  metadataIndex:
+    waitForFile: true
+    timeoutSeconds: 4
+storage:
+  graphdbHome:
+    type: hostPath
+    hostPath:
+      path: /tmp/neurobagel-tests/node-existing-metadata-graphdb-home
+      type: DirectoryOrCreate
+  neurobagelData:
+    type: hostPath
+    hostPath:
+      path: /tmp/neurobagel-tests/node-existing-metadata-data
+      type: DirectoryOrCreate

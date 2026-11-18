@@ -31,10 +31,10 @@ spec:
             - -c
             - |
               i=0
-              while [ ! -f /data/datasets_metadata.json ]; do
+              while [ ! -s /data/datasets_metadata.json ]; do
                 i=$((i+1))
-                if [ "$i" -ge 180 ]; then
-                  echo "datasets_metadata.json was not created by init_data"
+                if [ "$i" -ge {{ max 1 (div (int .Values.api.metadataIndex.timeoutSeconds) 2) }} ]; then
+                  echo "ERROR: /data/datasets_metadata.json was not created within {{ .Values.api.metadataIndex.timeoutSeconds }} seconds"
                   exit 1
                 fi
                 sleep 2
@@ -49,7 +49,12 @@ spec:
           imagePullPolicy: {{ .Values.graph.image.pullPolicy }}
           command:
             - /bin/bash
-            - /usr/src/neurobagel/scripts/setup.sh
+            - -ec
+            - |
+              mkdir -p /opt/graphdb/home/neurobagel-scripts
+              cp /usr/src/neurobagel/scripts/* /opt/graphdb/home/neurobagel-scripts/
+              cd /opt/graphdb/home/neurobagel-scripts
+              exec bash setup.sh
           ports:
             - name: graph
               containerPort: 7200
@@ -76,14 +81,19 @@ spec:
               mountPath: /run/secrets
               readOnly: true
           readinessProbe:
-            httpGet:
-              path: /rest/repositories
-              port: graph
+            exec:
+              command:
+                - /bin/bash
+                - -ec
+                - |
+                  response=$(curl -fsS -u "${NB_GRAPH_USERNAME}:$(cat /run/secrets/db_user_password)" \
+                    -H 'Accept: text/boolean' \
+                    "http://127.0.0.1:${NB_GRAPH_PORT}/${NB_GRAPH_DB}?query=ASK%7B%7D")
+                  test "$response" = true
             initialDelaySeconds: 30
             periodSeconds: 10
           livenessProbe:
-            httpGet:
-              path: /rest/repositories
+            tcpSocket:
               port: graph
             initialDelaySeconds: 60
             periodSeconds: 20

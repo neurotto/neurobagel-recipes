@@ -4,6 +4,9 @@ profiles:
     enabled: true
   portal:
     enabled: false
+api:
+  metadataIndex:
+    waitForFile: true
 routing:
   proxy:
     enabled: false
@@ -16,7 +19,4 @@ storage:
       path: /tmp/neurobagel-tests/node-missing-init-data-graphdb-home
       type: DirectoryOrCreate
   neurobagelData:
-    type: hostPath
-    hostPath:
-      path: /tmp/neurobagel-tests/node-missing-init-data-data
-      type: DirectoryOrCreate
+    type: emptyDir
